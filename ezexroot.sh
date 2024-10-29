@@ -159,6 +159,11 @@ else
     echo -e "${RED}Writable mount configuration failed ❌${NC}"
 fi
 
+# Display additional messages for 15 seconds
+echo -e "${YELLOW}** Installation Completed ** ${NC}" # Installation completion message
+echo -e "${MAGENTA} Made By : PeDitX ${NC}" # Author information
+sleep 15 # Keep the messages displayed for 15 seconds
+
 # Check overall status before rebooting
 if [ $RESULT_PACKAGE_INSTALL -eq 0 ] && [ $RESULT_USB_DETECT -eq 0 ] && [ $RESULT_PARTITION -eq 0 ] && [ $RESULT_FSTAB_CONFIG -eq 0 ] && [ $RESULT_COPY_OVERLAY -eq 0 ] && [ $RESULT_RW_CONFIG -eq 0 ]; then
     echo -e "${CYAN}All steps completed successfully. Rebooting...${NC}"
