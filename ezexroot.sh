@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# تعریف رنگ‌ها
+# Define colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,17 +30,17 @@ echo " - Model : $EPOL"
 echo " - System Ver : $DISTRIB_RELEASE"
 echo " - System Arch : $DISTRIB_ARCH"
 
-# پیام شروع
+# Starting message
 echo -e "${CYAN}Running as root...${NC}"
 sleep 2
 clear
 
-# متغیر گزارش برای ذخیره نتایج هر مرحله
+# Variable to log results of each step
 RESULT_LOG="Script Results:\n"
 OVERALL_RESULT=""
 FAILURE=0
 
-# تابع بررسی موفقیت هر مرحله و ثبت نتیجه
+# Function to check the success of each step and log the result
 check_status() {
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Step $1: Completed Successfully ✅${NC}"
@@ -51,20 +51,20 @@ check_status() {
     fi
 }
 
-# حذف نسخه قبلی اسکریپت در صورت وجود
+# Remove previous version of the script if it exists
 SCRIPT_PATH="/root/ezxroot.sh"
 if [ -f "$SCRIPT_PATH" ]; then
     echo -e "${YELLOW}Found another version of ezxroot.sh. Removing old version...${NC}"
     rm -f "$SCRIPT_PATH"
 fi
 
-# مرحله 1: به‌روزرسانی لیست بسته‌ها و نصب بسته‌های لازم
+# Step 1: Update package list and install required packages
 echo -e "${BLUE}Updating package list and installing required packages...${NC}"
 opkg update && opkg install -y kmod-usb-storage kmod-usb-storage-uas usbutils block-mount kmod-fs-ext4 e2fsprogs parted curl gdisk kmod-usb-storage-extras
 RESULT_PACKAGE_INSTALL=$?
 check_status "Install Packages"
 
-# مرحله 2: شناسایی اولین دیسک USB متصل‌شده
+# Step 2: Detect the first connected USB disk
 echo -e "${BLUE}Detecting USB disk...${NC}"
 DISK=$(lsblk -o NAME,TRAN | grep usb | awk '{print "/dev/"$1}' | head -n 1)
 if [ -z "$DISK" ]; then
@@ -75,7 +75,7 @@ else
     RESULT_USB_DETECT=0
 fi
 
-# مرحله 3: ایجاد پارتیشن GPT و استفاده از کل فضای دیسک برای extroot
+# Step 3: Create GPT partition and use full disk space for extroot
 if [ $RESULT_USB_DETECT -eq 0 ]; then
     echo -e "${BLUE}Creating GPT partition and formatting for extroot...${NC}"
     parted -s ${DISK} mklabel gpt mkpart primary ext4 0% 100% && mkfs.ext4 -L extroot ${DISK}1
@@ -85,7 +85,7 @@ else
     RESULT_PARTITION=1
 fi
 
-# مرحله 4: تنظیمات extroot در fstab
+# Step 4: Configure extroot in fstab
 if [ $RESULT_PARTITION -eq 0 ]; then
     echo -e "${MAGENTA}Configuring extroot in fstab...${NC}"
     UUID=$(blkid -s UUID -o value ${DISK}1)
@@ -97,7 +97,7 @@ else
     RESULT_FSTAB_CONFIG=1
 fi
 
-# مرحله 5: کپی کردن فایل‌های overlay به USB
+# Step 5: Copy overlay files to USB
 if [ $RESULT_FSTAB_CONFIG -eq 0 ]; then
     echo -e "${BLUE}Copying overlay files to USB...${NC}"
     mount ${DISK}1 /mnt && tar -C ${MOUNT} -cvf - . | tar -C /mnt -xf -
@@ -107,7 +107,7 @@ else
     RESULT_COPY_OVERLAY=1
 fi
 
-# مرحله 6: تنظیمات fstab برای پیکربندی root mount writable
+# Step 6: Configure fstab for writable root mount
 if [ $RESULT_COPY_OVERLAY -eq 0 ]; then
     echo -e "${MAGENTA}Configuring writable mount in fstab...${NC}"
     DEVICE=$(block info | grep -o -e '/dev/\S*' | grep -E "${DISK}1" -A 1 | tail -n 1)
@@ -118,11 +118,11 @@ else
     RESULT_RW_CONFIG=1
 fi
 
-# نمایش نتایج مراحل به تفکیک در انتها
+# Display results of each step separately at the end
 clear
 echo -e "${CYAN}Script Results:${NC}"
 
-# بررسی وضعیت نهایی و راه‌اندازی مجدد سیستم
+# Check final status and reboot
 if [ $RESULT_PACKAGE_INSTALL -eq 0 ]; then
     echo -e "${GREEN}Packages installed successfully ✅${NC}"
 else
@@ -159,7 +159,7 @@ else
     echo -e "${RED}Writable mount configuration failed ❌${NC}"
 fi
 
-# بررسی وضعیت نهایی و راه‌اندازی مجدد سیستم
+# Check overall status before rebooting
 if [ $RESULT_PACKAGE_INSTALL -eq 0 ] && [ $RESULT_USB_DETECT -eq 0 ] && [ $RESULT_PARTITION -eq 0 ] && [ $RESULT_FSTAB_CONFIG -eq 0 ] && [ $RESULT_COPY_OVERLAY -eq 0 ] && [ $RESULT_RW_CONFIG -eq 0 ]; then
     echo -e "${CYAN}All steps completed successfully. Rebooting...${NC}"
     # reboot
