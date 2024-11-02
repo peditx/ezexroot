@@ -27,6 +27,10 @@ echo -e "${MAGENTA}
 
                                        E  A  S  Y  E  x  r  o  o  t  
 ${NC}"
+EPOL=`cat /tmp/sysinfo/model`
+echo " - Model : $EPOL"
+echo " - System Ver : $DISTRIB_RELEASE"
+echo " - System Arch : $DISTRIB_ARCH"
 
 echo "Running as root..."
 sleep 2
